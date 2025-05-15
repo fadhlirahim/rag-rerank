@@ -64,6 +64,8 @@ npm install
 npm run dev
 ```
 
+The frontend will be available at `http://localhost:3000`.
+
 ### API Endpoints
 
 #### Ingest a Document
@@ -102,9 +104,15 @@ As noted in the design document:
 - GPT reranking dominates latency (300-400ms for 25 documents).
 - At scale, consider fine-tuning a smaller reranker model.
 
+For production, consider:
+	•	Using a faster reranker (e.g. bge-reranker, Cohere Rerank, etc.)
+	•	Caching reranker results for repeated queries
+	•	Distilling the scoring behavior into a local mode
+
 ## Security Notes
 
 This prototype sends raw document content to third-party LLM services. In a production environment, consider:
 - Scrubbing relevant before sending to external services
 - Implementing a local model for sensitive information
 - Adding authentication and rate limiting to the API
+
