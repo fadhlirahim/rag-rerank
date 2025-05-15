@@ -25,8 +25,8 @@ This implementation follows a simple but effective RAG pattern:
 
 1. Clone the repository:
 ```
-git clone https://github.com/fadhlirahim/rag-embeddings-concept.git
-cd rag-embeddings-concept
+git clone https://github.com/fadhlirahim/rag-rerank.git
+cd rag-rerank
 ```
 
 2. Install dependencies:
@@ -35,13 +35,17 @@ pip install -r requirements.txt
 ```
 
 3. Set up environment variables by creating a `.env` file:
+
 ```
+cp .env.example .env
+
+# Then edit the .env fils to include your API keys
 OPENAI_API_KEY=your_openai_api_key
 PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_INDEX_NAME=your_pinecone_index_name
 ```
 
-### Pinecone Setup
+### Pinecone Setup (free account is pretty generous)
 1. Create a Pinecone account if you don't have one already
 2. Create a new index with:
    - Dimensions: 1024
