@@ -1,4 +1,4 @@
-# RAG Embeddings Concept
+# RAG Rerank PoC
 
 A simple, two-stage Retrieval-Augmented Generation (RAG) system that uses:
 - Retrieval: text-embedding-3-large via OpenAI
