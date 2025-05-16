@@ -1,0 +1,31 @@
+[tools]
+uv = "latest"
+python = "3.11.12"
+node = "22"
+
+[tasks]
+# Backend tasks
+start = "uv run -m app.main"
+dev = "python -m uvicorn app.main:app --reload"
+test = "python -m pytest tests/** -v"
+lint = "python -m ruff check ."
+format = "python -m ruff format . && python -m ruff check --fix ."
+check = "python -m mypy . --explicit-package-bases"
+
+# Frontend tasks
+frontend-install = "cd frontend && npm install"
+frontend-dev = "cd frontend && npm run dev"
+frontend-build = "cd frontend && npm run build"
+frontend-preview = "cd frontend && npm run preview"
+
+# Composite tasks
+dev-all = "mise run dev & mise run frontend-dev"
+install-all = "uv sync --group dev && cd frontend && npm install"
+
+[env]
+mise.file = ".env"
+_.python.venv = { path = ".venv", create = true, uv_create_args = ["--system-site-packages"] }
+
+[settings]
+python.uv_venv_auto = true
+experimental = true

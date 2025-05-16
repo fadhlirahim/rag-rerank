@@ -1,58 +1,90 @@
-from typing import List, Dict, Any
-from app.services.embedding import get_embedding, get_embeddings, upsert_embeddings, query_embeddings
-from app.services.text_processing import TextChunk, load_document
-from app.services.llm import rerank, generate_answer
-from app.config import DEFAULT_RETRIEVAL_TOP_K, DEFAULT_RERANK_TOP_N
+from typing import Any
 
-async def ingest_document(content: str, filename: str, metadata: Dict[str, Any] = None) -> int:
+from app.core import DocumentIngestionError, QueryError, get_logger, settings
+from app.services.embedding import (
+    get_embedding,
+    get_embeddings,
+    query_embeddings,
+    upsert_embeddings,
+)
+from app.services.llm import generate_answer, rerank
+from app.services.text_processing import load_document
+
+# Setup logger
+logger = get_logger(__name__)
+
+
+async def ingest_document(
+    content: str, filename: str, metadata: dict[str, Any] = None
+) -> int:
     """Ingest a document into the RAG system."""
-    # Split document into chunks
-    chunks = load_document(content, filename, metadata)
+    try:
+        logger.info(f"Ingesting document: {filename}")
 
-    # Get embeddings for chunks
-    texts = [chunk.text for chunk in chunks]
-    embeddings = get_embeddings(texts)
+        # Split document into chunks
+        chunks = load_document(content, filename, metadata)
+        logger.debug(f"Document split into {len(chunks)} chunks")
 
-    # Prepare metadata for Pinecone
-    chunk_ids = [chunk.id for chunk in chunks]
-    chunk_metadata = [
-        {
-            "text": chunk.text,
-            **chunk.metadata
-        } for chunk in chunks
-    ]
+        # Get embeddings for chunks
+        texts = [chunk.text for chunk in chunks]
+        logger.debug(f"Getting embeddings for {len(texts)} chunks")
+        embeddings = get_embeddings(texts)
 
-    # Upsert to vector database
-    count = upsert_embeddings(chunk_ids, embeddings, chunk_metadata)
-    return count
+        # Prepare metadata for Pinecone
+        chunk_ids = [chunk.id for chunk in chunks]
+        chunk_metadata = [{"text": chunk.text, **chunk.metadata} for chunk in chunks]
 
-async def query_knowledge(query: str, top_k: int = DEFAULT_RETRIEVAL_TOP_K, top_n: int = DEFAULT_RERANK_TOP_N) -> Dict[str, Any]:
+        # Upsert to vector database
+        count = upsert_embeddings(chunk_ids, embeddings, chunk_metadata)
+        logger.info(f"Successfully ingested {count} chunks")
+        return count
+    except Exception as e:
+        logger.error(f"Document ingestion failed: {str(e)}")
+        raise DocumentIngestionError(f"Document ingestion failed: {str(e)}")
+
+
+async def query_knowledge(
+    query: str, top_k: int = None, top_n: int = None
+) -> dict[str, Any]:
     """Query the RAG system."""
-    # Get query embedding
-    query_embedding = get_embedding(query)
+    try:
+        # Use defaults if not provided
+        top_k = top_k or settings.DEFAULT_RETRIEVAL_TOP_K
+        top_n = top_n or settings.DEFAULT_RERANK_TOP_N
 
-    # Retrieve similar documents
-    matches = query_embeddings(query_embedding, top_k)
+        logger.info(f"Processing query with top_k={top_k}, top_n={top_n}")
+        logger.debug(f"Query: {query}")
 
-    # Convert matches to candidate format for reranking
-    candidates = [
-        {
-            "id": match.id,
-            "text": match.metadata["text"],
-            "score": match.score,
-            "metadata": {k: v for k, v in match.metadata.items() if k != "text"}
-        }
-        for match in matches
-    ]
+        # Get query embedding
+        logger.debug("Getting query embedding")
+        query_embedding = get_embedding(query)
 
-    # Rerank candidates
-    reranked = rerank(query, candidates, top_n)
+        # Retrieve similar documents
+        logger.debug(f"Retrieving similar documents with top_k={top_k}")
+        matches = query_embeddings(query_embedding, top_k)
 
-    # Generate answer
-    answer = generate_answer(query, reranked)
+        # Convert matches to candidate format for reranking
+        candidates = [
+            {
+                "id": match.id,
+                "text": match.metadata["text"],
+                "score": match.score,
+                "metadata": {k: v for k, v in match.metadata.items() if k != "text"},
+            }
+            for match in matches
+        ]
+        logger.debug(f"Retrieved {len(candidates)} candidates for reranking")
 
-    return {
-        "query": query,
-        "answer": answer,
-        "sources": reranked
-    }
+        # Rerank candidates
+        logger.debug(f"Reranking candidates with top_n={top_n}")
+        reranked = rerank(query, candidates, top_n)
+
+        # Generate answer
+        logger.debug("Generating answer")
+        answer = generate_answer(query, reranked)
+        logger.info("Query processing completed successfully")
+
+        return {"query": query, "answer": answer, "sources": reranked}
+    except Exception as e:
+        logger.error(f"Query processing failed: {str(e)}")
+        raise QueryError(f"Query processing failed: {str(e)}")
