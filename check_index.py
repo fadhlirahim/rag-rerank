@@ -1,6 +1,7 @@
 import os
-from dotenv import load_dotenv
+
 import pinecone
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv(override=True)
@@ -24,8 +25,8 @@ print(f"Total vector count: {stats.get('total_vector_count', 'N/A')}")
 print(f"Namespaces: {stats.get('namespaces', 'N/A')}")
 
 # List all namespaces
-if stats.get('namespaces'):
-    for ns, ns_stats in stats['namespaces'].items():
+if stats.get("namespaces"):
+    for ns, ns_stats in stats["namespaces"].items():
         print(f"Namespace: {ns}, Vector count: {ns_stats.get('vector_count', 'N/A')}")
 else:
     print("No namespaces found.")
