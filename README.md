@@ -8,6 +8,9 @@ A simple, two-stage Retrieval-Augmented Generation (RAG) system that uses:
 
 Built with FastAPI, integrating OpenAI embeddings and Pinecone for vector storage.
 
+
+Ideas from https://www.pinecone.io/learn/series/rag/rerankers/#Power-of-Rerankers
+
 ## Features
 
 - Document ingestion with automatic text chunking
