@@ -178,21 +178,39 @@ async def query_knowledge(
         logger.debug(f"Retrieved {len(candidates)} candidates for reranking")
 
         # Check if we should skip MMR for fiction content
-        skip_mmr = any(
+        is_fiction = any(
             c.get("metadata", {}).get("is_fiction", False) or
             c.get("metadata", {}).get("genre") == "fiction" or
             c.get("metadata", {}).get("category") == "fiction"
             for c in candidates[:3]  # Check first few to save time
         )
 
-        if skip_mmr:
-            logger.info("Detected fiction content, skipping MMR to preserve narrative continuity")
-            mmr_candidates = candidates
+        # Check if query contains narrative elements that would benefit from contiguous passages
+        narrative_query = any(term in query.lower() for term in [
+            "witness", "wedding", "church", "sequence", "events", "story", "what happened", "how did", "what led to"
+        ])
+
+        # Completely skip MMR for fiction with narrative queries or use high lambda to prioritize relevance
+        if is_fiction:
+            if narrative_query:
+                logger.info("Detected fiction content with narrative query, skipping MMR to preserve narrative continuity")
+                mmr_candidates = candidates
+            else:
+                # Use higher lambda for fiction (prioritize relevance over diversity)
+                fiction_lambda = settings.FICTION_MMR_LAMBDA  # Use the configured value
+                logger.info(f"Using higher MMR lambda for fiction: {fiction_lambda}")
+                mmr_candidates = apply_mmr(query_embedding, candidates, lambda_param=fiction_lambda, top_k=min(top_k, len(candidates)))
         else:
-            # Apply MMR to diversify results before reranking
+            # Apply normal MMR for non-fiction
             logger.debug("Applying MMR to diversify results")
             mmr_candidates = apply_mmr(query_embedding, candidates, top_k=min(top_k, len(candidates)))
             logger.debug(f"Selected {len(mmr_candidates)} diverse candidates with MMR")
+
+        # For fiction narrative queries, we might want to increase top_n
+        if is_fiction and narrative_query and top_n < 15:
+            original_top_n = top_n
+            top_n = 15  # Use more context for narrative queries
+            logger.info(f"Increased top_n from {original_top_n} to {top_n} for fiction narrative query")
 
         # Rerank candidates
         logger.debug(f"Reranking candidates with top_n={top_n}, USE_CROSS_ENCODER={settings.USE_CROSS_ENCODER}")

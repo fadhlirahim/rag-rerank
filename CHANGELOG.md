@@ -1,5 +1,36 @@
 # Changelog
 
+## Theme-Based Boosting for Narrative Content - Major Update
+
+### Added
+- New `theme_tagging.py` utility for identifying narrative themes in content:
+  - Ultra-lean implementation without heavyweight NLP dependencies
+  - 16 pre-defined themes with curated keywords for fiction content
+  - Special handling for narrative elements like "wedding" and "witness"
+- Advanced theme-based relevance boosting system:
+  - Detects thematic overlap between queries and passages
+  - Applies configurable boost factors for matching themes and keywords
+  - Provides extra boost for narrative continuity elements
+- Theme-based diagnostic tools:
+  - `analyze_query()` - Identifies themes and narrative elements in queries
+  - `simulate_theme_boost()` - Simulates boosting effects for debugging
+  - `test_theme_tagging.py` - Test script to demonstrate and verify boosting
+
+### Enhanced
+- Completely revamped boosting mechanism for fiction content:
+  - Now uses semantic themes instead of only keyword matching
+  - Maintains backward compatibility with keyword boosting
+  - Significantly improves retrieval for narrative questions about fiction
+- Added detailed logging of theme detection and boosting effects
+- Enhanced reranking process with theme-sensitive scoring
+
+### Configuration
+- Added new theme-specific configuration parameters:
+  - `THEME_MATCH_BOOST` - Controls boost strength for matching themes
+  - `THEME_KEYWORD_BOOST` - Controls boost for keyword matches within themes
+  - `NARRATIVE_ELEMENT_BOOST` - Controls boost for narrative continuity elements
+  - `ENABLE_THEME_DETECTION` - Toggle for theme-based vs. legacy keyword boosting
+
 ## Fiction Detection Improvements - Minor Update
 
 ### Fixed
