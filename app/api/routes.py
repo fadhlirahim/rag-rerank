@@ -1,6 +1,14 @@
 from fastapi import APIRouter, HTTPException
 
-from app.models import DocumentRequest, IngestResponse, QueryRequest, QueryResponse
+from app.models import (
+    DeleteResponse,
+    DeleteVectorsRequest,
+    DocumentRequest,
+    IngestResponse,
+    QueryRequest,
+    QueryResponse,
+)
+from app.services.embedding import delete_all_vectors, delete_vectors
 from app.services.rag import ingest_document, query_knowledge
 
 router = APIRouter()
@@ -36,3 +44,25 @@ async def ask(request: QueryRequest):
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+@router.post("/reset", response_model=DeleteResponse)
+async def reset_index():
+    """Reset the vector database by deleting all vectors."""
+    try:
+        result = delete_all_vectors()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
+
+@router.post("/delete", response_model=DeleteResponse)
+async def delete_index_vectors(request: DeleteVectorsRequest):
+    """Delete specific vectors by their IDs."""
+    try:
+        if not request.ids:
+            # If no IDs provided, delete all
+            return await reset_index()
+
+        result = delete_vectors(request.ids)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Deletion failed: {str(e)}")

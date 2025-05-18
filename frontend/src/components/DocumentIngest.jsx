@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { ingestDocument } from '../api/ragApi';
+import { ingestDocument, resetVectors } from '../api/ragApi';
 import useRagStore from '../stores/ragStore';
 
 function DocumentIngest() {
@@ -13,6 +13,9 @@ function DocumentIngest() {
     setDocumentMetadata,
     resetDocumentForm
   } = useRagStore();
+
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -29,9 +32,31 @@ function DocumentIngest() {
     }
   });
 
+  // Mutation for resetting vectors
+  const resetMutation = useMutation({
+    mutationFn: resetVectors,
+    onSuccess: () => {
+      setResetSuccess(true);
+      setResetError(null);
+      // Clear success message after 3 seconds
+      setTimeout(() => setResetSuccess(false), 3000);
+    },
+    onError: (error) => {
+      setResetError(error.message);
+      setResetSuccess(false);
+    }
+  });
+
   const handleSubmit = (e) => {
     e.preventDefault();
     ingestMutation.mutate();
+  };
+
+  const handleReset = () => {
+    // Confirm before resetting
+    if (window.confirm('Are you sure you want to delete ALL vectors from the database? This action cannot be undone.')) {
+      resetMutation.mutate();
+    }
   };
 
   const handleFileUpload = (e) => {
@@ -148,20 +173,38 @@ function DocumentIngest() {
           </select>
         </div>
 
-        <button
-          type="submit"
-          disabled={!documentInput || ingestMutation.isPending}
-          style={{
-            padding: '10px 15px',
-            backgroundColor: !documentInput || ingestMutation.isPending ? '#cccccc' : '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: !documentInput || ingestMutation.isPending ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {ingestMutation.isPending ? 'Ingesting...' : 'Ingest Document'}
-        </button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="submit"
+              disabled={!documentInput || ingestMutation.isPending}
+              style={{
+                padding: '10px 15px',
+                backgroundColor: !documentInput || ingestMutation.isPending ? '#cccccc' : '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: !documentInput || ingestMutation.isPending ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {ingestMutation.isPending ? 'Ingesting...' : 'Ingest Document'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={resetMutation.isPending}
+              style={{
+                padding: '10px 15px',
+                backgroundColor: resetMutation.isPending ? '#cccccc' : '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: resetMutation.isPending ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {resetMutation.isPending ? 'Resetting...' : 'Reset Database'}
+            </button>
+          </div>
 
         {ingestMutation.isError && (
           <div style={{ color: 'red', marginTop: '10px' }}>
@@ -172,6 +215,18 @@ function DocumentIngest() {
         {ingestMutation.isSuccess && (
           <div style={{ color: 'green', marginTop: '10px' }}>
             Document successfully ingested! Chunks processed: {ingestMutation.data.chunks_ingested}
+          </div>
+        )}
+
+        {resetError && (
+          <div style={{ color: 'red', marginTop: '10px' }}>
+            Reset Error: {resetError}
+          </div>
+        )}
+
+        {resetSuccess && (
+          <div style={{ color: 'green', marginTop: '10px' }}>
+            Vector database successfully reset!
           </div>
         )}
       </form>

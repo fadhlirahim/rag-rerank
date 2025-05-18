@@ -1,4 +1,6 @@
 from app.models.api import (
+    DeleteResponse,
+    DeleteVectorsRequest,
     DocumentRequest,
     IngestResponse,
     QueryRequest,
@@ -7,6 +9,8 @@ from app.models.api import (
 )
 
 __all__ = [
+    "DeleteResponse",
+    "DeleteVectorsRequest",
     "DocumentRequest",
     "IngestResponse",
     "QueryRequest",

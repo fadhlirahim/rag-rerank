@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 from pydantic import BaseModel, Field
 
@@ -39,3 +39,13 @@ class QueryResponse(BaseModel):
     sources: list[SourceDocument] = Field(
         ..., description="The source documents used to generate the answer"
     )
+
+
+class DeleteVectorsRequest(BaseModel):
+    ids: List[str] = Field(default=None, description="List of vector IDs to delete. If not provided, all vectors will be deleted.")
+
+
+class DeleteResponse(BaseModel):
+    status: str = Field(..., description="Status of the deletion operation")
+    message: str | None = Field(default=None, description="Additional information about the deletion")
+    deleted_count: int | None = Field(default=None, description="Number of vectors deleted")

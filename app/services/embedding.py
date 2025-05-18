@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 import openai
 import pinecone
@@ -147,3 +147,25 @@ def query_embeddings(
     except Exception as e:
         logger.error(f"Failed to query embeddings: {str(e)}")
         raise EmbeddingError(f"Failed to query embeddings: {str(e)}")
+
+def delete_all_vectors():
+    """Delete all vectors from the Pinecone index."""
+    try:
+        logger.info(f"Deleting all vectors from index {settings.PINECONE_INDEX_NAME}")
+        index.delete(delete_all=True)
+        logger.info("Successfully deleted all vectors")
+        return {"status": "success", "message": f"All data deleted from index {settings.PINECONE_INDEX_NAME}"}
+    except Exception as e:
+        logger.error(f"Failed to delete vectors: {str(e)}")
+        raise EmbeddingError(f"Failed to delete vectors: {str(e)}")
+
+def delete_vectors(ids: List[str]):
+    """Delete specific vectors by their IDs."""
+    try:
+        logger.info(f"Deleting {len(ids)} vectors from index {settings.PINECONE_INDEX_NAME}")
+        index.delete(ids=ids)
+        logger.info(f"Successfully deleted {len(ids)} vectors")
+        return {"status": "success", "deleted_count": len(ids)}
+    except Exception as e:
+        logger.error(f"Failed to delete vectors: {str(e)}")
+        raise EmbeddingError(f"Failed to delete vectors: {str(e)}")

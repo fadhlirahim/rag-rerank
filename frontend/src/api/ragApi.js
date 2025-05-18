@@ -39,3 +39,8 @@ export const queryKnowledge = async (query) => {
 export const healthCheck = async () => {
   return apiRequest('/health', 'GET');
 };
+
+// Reset all vectors in the database
+export const resetVectors = async () => {
+  return apiRequest('/reset', 'POST');
+};
