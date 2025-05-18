@@ -7,7 +7,8 @@ from app.services.embedding import (
     query_embeddings,
     upsert_embeddings,
 )
-from app.services.llm import generate_answer, rerank
+from app.services.llm import generate_answer
+from app.services.rerankers import rerank
 from app.services.text_processing import load_document
 
 # Setup logger
@@ -76,8 +77,12 @@ async def query_knowledge(
         logger.debug(f"Retrieved {len(candidates)} candidates for reranking")
 
         # Rerank candidates
-        logger.debug(f"Reranking candidates with top_n={top_n}")
+        logger.debug(f"Reranking candidates with top_n={top_n}, USE_CROSS_ENCODER={settings.USE_CROSS_ENCODER}")
         reranked = rerank(query, candidates, top_n)
+
+        # Log reranking results
+        mean_score = sum(doc["score"] for doc in reranked) / len(reranked) if reranked else 0
+        logger.debug(f"Reranking complete, mean relevance score: {mean_score:.2f}")
 
         # Generate answer
         logger.debug("Generating answer")

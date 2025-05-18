@@ -10,6 +10,17 @@ class Settings(BaseSettings):
     RERANK_MODEL: str = Field("gpt-4o-mini", env_var="RERANK_MODEL")
     ANSWER_MODEL: str = Field("gpt-4o", env_var="ANSWER_MODEL")
 
+    # Cross-Encoder Configuration
+    USE_CROSS_ENCODER: bool = Field(True, env_var="USE_CROSS_ENCODER")
+    CROSS_ENCODER_MODEL: str = Field("BAAI/bge-reranker-large", env_var="CROSS_ENCODER_MODEL")
+    DEVICE: str = Field("cpu", env_var="DEVICE")
+    RERANK_BATCH: int = Field(16, env_var="RERANK_BATCH")
+    CE_MAX_PAIRS: int = Field(100, env_var="CE_MAX_PAIRS")
+    CE_SCORE_SHIFT: float = Field(5.0, env_var="CE_SCORE_SHIFT")
+    CE_SCORE_SCALE: float = Field(1.0, env_var="CE_SCORE_SCALE")
+    CE_NEUTRAL_THRESHOLD: float = Field(5.0, env_var="CE_NEUTRAL_THRESHOLD")
+    LLM_FALLBACK_THRESHOLD: float = Field(6.5, env_var="LLM_FALLBACK_THRESHOLD")
+
     # Pinecone Configuration
     PINECONE_API_KEY: str = Field(..., env_var="PINECONE_API_KEY")
     PINECONE_INDEX_NAME: str = Field(..., env_var="PINECONE_INDEX_NAME")

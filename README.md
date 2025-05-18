@@ -3,11 +3,10 @@
 A simple, two-stage Retrieval-Augmented Generation (RAG) system that uses:
 
 - Retrieval: text-embedding-3-large via OpenAI
-- Rerank: GPT-4o-mini for scoring relevance
+- Rerank: Local cross-encoder model (with GPT-4o-mini fallback)
 - Answer: GPT-4o for generating the final response
 
 Built with FastAPI, integrating OpenAI embeddings and Pinecone for vector storage.
-
 
 Ideas from https://www.pinecone.io/learn/series/rag/rerankers/#Power-of-Rerankers
 
@@ -15,7 +14,7 @@ Ideas from https://www.pinecone.io/learn/series/rag/rerankers/#Power-of-Reranker
 
 - Document ingestion with automatic text chunking
 - Semantic search using OpenAI embeddings
-- LLM-based reranking of search results
+- Cross-encoder based reranking of search results with LLM fallback
 - Answer generation from relevant documents
 
 ## Quick Setup with uv & mise
@@ -153,6 +152,17 @@ EMBEDDING_MODEL=text-embedding-3-large
 EMBEDDING_DIMENSIONS=1024
 RERANK_MODEL=gpt-4o-mini
 ANSWER_MODEL=gpt-4o
+
+# Cross-Encoder Configuration
+USE_CROSS_ENCODER=true
+CROSS_ENCODER_MODEL=BAAI/bge-reranker-large
+DEVICE=cpu
+RERANK_BATCH=16
+CE_MAX_PAIRS=100V
+CE_SCORE_SHIFT=5.0
+CE_SCORE_SCALE=1.0
+CE_NEUTRAL_THRESHOLD=5.0
+LLM_FALLBACK_THRESHOLD=5.0
 
 # Pinecone Configuration
 PINECONE_API_KEY=your_pinecone_api_key
