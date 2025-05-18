@@ -175,27 +175,44 @@ def rerank_crossencoder(
         for c, s in zip(candidates, normalized_scores):
             c["score"] = float(s)
 
-        # Log normalized scores in debug mode only
-        if settings.DEBUG and normalized_scores:
-            logger.debug(
-                f"Normalized score range: min={min(normalized_scores):.2f}, "
-                f"max={max(normalized_scores):.2f}"
-            )
+        # Check if any candidates are fiction content to adjust threshold
+        is_fiction = any(
+            c.get("metadata", {}).get("is_fiction", False) or
+            c.get("metadata", {}).get("genre") == "fiction" or
+            c.get("metadata", {}).get("category") == "fiction"
+            for c in candidates[:3]  # Check first few
+        )
+
+        # Adjust threshold for fiction content
+        threshold = settings.CE_NEUTRAL_THRESHOLD * 0.8 if is_fiction else settings.CE_NEUTRAL_THRESHOLD
+
+        # Log fiction detection
+        if is_fiction:
+            logger.info("Fiction content detected, using adjusted threshold")
+
+        # Sort by score (descending) for logging and return
+        sorted_candidates = sorted(candidates, key=lambda c: c["score"], reverse=True)
+
+        # Log top 10 candidates with scores before truncation (helpful for debugging)
+        if settings.DEBUG:
+            for i, c in enumerate(sorted_candidates[:10]):
+                snippet = c["text"][:100] + "..." if len(c["text"]) > 100 else c["text"]
+                logger.debug(f"Candidate #{i+1}, ID={c['id']}, Score={c['score']:.2f}, Text: {snippet}")
 
         # Calculate mean score to check if we need to fallback
         mean_score = statistics.mean(normalized_scores) if normalized_scores else 0
         logger.debug(f"Cross-encoder normalized mean score: {mean_score:.2f}")
 
-        # Only fall back if normalized mean score is below neutral threshold
-        if mean_score < settings.CE_NEUTRAL_THRESHOLD:
+        # Only fall back if normalized mean score is below adjusted threshold
+        if mean_score < threshold:
             logger.info(
                 f"Cross-encoder normalized mean score {mean_score:.2f} below "
-                f"threshold {settings.CE_NEUTRAL_THRESHOLD}"
+                f"threshold {threshold:.2f} (is_fiction={is_fiction})"
             )
             return fallback_to_llm("Mean score below threshold", query, candidates, top_n)
 
-        # Sort by score (descending) and return top n
-        reranked_candidates = sorted(candidates, key=lambda c: c["score"], reverse=True)[:top_n]
+        # Return top n candidates
+        reranked_candidates = sorted_candidates[:top_n]
         logger.debug(f"Cross-encoder reranking complete, returning top {top_n} candidates")
         return reranked_candidates
 

@@ -5,7 +5,7 @@ const useRagStore = create((set) => ({
   // Document ingest state
   documentInput: '',
   documentName: '',
-  documentMetadata: { source: 'user_upload', category: 'general' },
+  documentMetadata: { source: 'user_upload', category: 'general', genre: 'non-fiction' },
 
   // Query state
   queryInput: '',
@@ -36,7 +36,7 @@ const useRagStore = create((set) => ({
   resetDocumentForm: () => set({
     documentInput: '',
     documentName: '',
-    documentMetadata: { source: 'user_upload', category: 'general' }
+    documentMetadata: { source: 'user_upload', category: 'general', genre: 'non-fiction' }
   }),
 
   // Reset query form

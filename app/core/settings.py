@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     CE_MAX_PAIRS: int = Field(100, env_var="CE_MAX_PAIRS")
     CE_SCORE_SHIFT: float = Field(5.0, env_var="CE_SCORE_SHIFT")
     CE_SCORE_SCALE: float = Field(1.0, env_var="CE_SCORE_SCALE")
-    CE_NEUTRAL_THRESHOLD: float = Field(5.0, env_var="CE_NEUTRAL_THRESHOLD")
+    CE_NEUTRAL_THRESHOLD: float = Field(4.0, env_var="CE_NEUTRAL_THRESHOLD")
     LLM_FALLBACK_THRESHOLD: float = Field(6.5, env_var="LLM_FALLBACK_THRESHOLD")
 
     # Pinecone Configuration
@@ -26,9 +26,10 @@ class Settings(BaseSettings):
     PINECONE_INDEX_NAME: str = Field(..., env_var="PINECONE_INDEX_NAME")
 
     # Retrieval Configuration
-    DEFAULT_RETRIEVAL_TOP_K: int = Field(25, env_var="DEFAULT_RETRIEVAL_TOP_K")
-    DEFAULT_RERANK_TOP_N: int = Field(5, env_var="DEFAULT_RERANK_TOP_N")
-    CHUNK_SIZE: int = Field(200, env_var="CHUNK_SIZE")
+    DEFAULT_RETRIEVAL_TOP_K: int = Field(50, env_var="DEFAULT_RETRIEVAL_TOP_K")
+    DEFAULT_RERANK_TOP_N: int = Field(10, env_var="DEFAULT_RERANK_TOP_N")
+    CHUNK_SIZE: int = Field(700, env_var="CHUNK_SIZE")
+    CHUNK_OVERLAP: int = Field(100, env_var="CHUNK_OVERLAP")
     MMR_LAMBDA: float = Field(0.5, env_var="MMR_LAMBDA")
 
     # Service Configuration

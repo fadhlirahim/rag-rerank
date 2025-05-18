@@ -173,38 +173,65 @@ function DocumentIngest() {
           </select>
         </div>
 
-                  <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              type="submit"
-              disabled={!documentInput || ingestMutation.isPending}
-              style={{
-                padding: '10px 15px',
-                backgroundColor: !documentInput || ingestMutation.isPending ? '#cccccc' : '#28a745',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: !documentInput || ingestMutation.isPending ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {ingestMutation.isPending ? 'Ingesting...' : 'Ingest Document'}
-            </button>
+        <div style={{ marginBottom: '15px' }}>
+          <label htmlFor="genre" style={{ display: 'block', marginBottom: '5px' }}>
+            Genre:
+          </label>
+          <select
+            id="genre"
+            value={documentMetadata.genre}
+            onChange={(e) => setDocumentMetadata({ genre: e.target.value })}
+            style={{
+              width: '100%',
+              padding: '8px',
+              borderRadius: '4px',
+              border: '1px solid #ddd'
+            }}
+          >
+            <option value="non-fiction">Non-Fiction</option>
+            <option value="fiction">Fiction</option>
+            <option value="poetry">Poetry</option>
+            <option value="code">Code</option>
+          </select>
+          {documentMetadata.genre === 'fiction' && (
+            <div style={{ fontSize: '0.85em', marginTop: '5px', color: '#666' }}>
+              Fiction documents use special processing to preserve narrative continuity.
+            </div>
+          )}
+        </div>
 
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={resetMutation.isPending}
-              style={{
-                padding: '10px 15px',
-                backgroundColor: resetMutation.isPending ? '#cccccc' : '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: resetMutation.isPending ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {resetMutation.isPending ? 'Resetting...' : 'Reset Database'}
-            </button>
-          </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            type="submit"
+            disabled={!documentInput || ingestMutation.isPending}
+            style={{
+              padding: '10px 15px',
+              backgroundColor: !documentInput || ingestMutation.isPending ? '#cccccc' : '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: !documentInput || ingestMutation.isPending ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {ingestMutation.isPending ? 'Ingesting...' : 'Ingest Document'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={resetMutation.isPending}
+            style={{
+              padding: '10px 15px',
+              backgroundColor: resetMutation.isPending ? '#cccccc' : '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: resetMutation.isPending ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {resetMutation.isPending ? 'Resetting...' : 'Reset Database'}
+          </button>
+        </div>
 
         {ingestMutation.isError && (
           <div style={{ color: 'red', marginTop: '10px' }}>

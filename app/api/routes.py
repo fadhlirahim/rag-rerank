@@ -10,6 +10,7 @@ from app.models import (
 )
 from app.services.embedding import delete_all_vectors, delete_vectors
 from app.services.rag import ingest_document, query_knowledge
+from app.utils.diagnostic import inspect_raw_retrieval, compare_retrieval_methods
 
 router = APIRouter()
 
@@ -66,3 +67,49 @@ async def delete_index_vectors(request: DeleteVectorsRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Deletion failed: {str(e)}")
+
+@router.post("/query", response_model=QueryResponse)
+async def query(request: QueryRequest):
+    """Query the knowledge base."""
+    try:
+        response = await query_knowledge(
+            query=request.query, top_k=request.top_k, top_n=request.top_n
+        )
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+@router.post("/diagnose/raw")
+async def diagnose_raw(request: QueryRequest):
+    """Diagnostic endpoint to examine raw retrieval results."""
+    try:
+        search_terms = request.metadata.get("search_terms", []) if request.metadata else []
+        output_path = request.metadata.get("output_path") if request.metadata else None
+
+        results = inspect_raw_retrieval(
+            query=request.query,
+            top_k=request.top_k or 50,
+            search_terms=search_terms,
+            output_path=output_path
+        )
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Diagnostic failed: {str(e)}")
+
+
+@router.post("/diagnose/compare")
+async def diagnose_compare(request: QueryRequest):
+    """Diagnostic endpoint to compare raw vs MMR retrieval."""
+    try:
+        search_terms = request.metadata.get("search_terms", []) if request.metadata else []
+        output_path = request.metadata.get("output_path") if request.metadata else None
+
+        results = compare_retrieval_methods(
+            query=request.query,
+            search_terms=search_terms,
+            output_path=output_path
+        )
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Comparison failed: {str(e)}")

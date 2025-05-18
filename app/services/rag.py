@@ -177,10 +177,22 @@ async def query_knowledge(
         ]
         logger.debug(f"Retrieved {len(candidates)} candidates for reranking")
 
-        # Apply MMR to diversify results before reranking
-        logger.debug("Applying MMR to diversify results")
-        mmr_candidates = apply_mmr(query_embedding, candidates, top_k=min(top_k, len(candidates)))
-        logger.debug(f"Selected {len(mmr_candidates)} diverse candidates with MMR")
+        # Check if we should skip MMR for fiction content
+        skip_mmr = any(
+            c.get("metadata", {}).get("is_fiction", False) or
+            c.get("metadata", {}).get("genre") == "fiction" or
+            c.get("metadata", {}).get("category") == "fiction"
+            for c in candidates[:3]  # Check first few to save time
+        )
+
+        if skip_mmr:
+            logger.info("Detected fiction content, skipping MMR to preserve narrative continuity")
+            mmr_candidates = candidates
+        else:
+            # Apply MMR to diversify results before reranking
+            logger.debug("Applying MMR to diversify results")
+            mmr_candidates = apply_mmr(query_embedding, candidates, top_k=min(top_k, len(candidates)))
+            logger.debug(f"Selected {len(mmr_candidates)} diverse candidates with MMR")
 
         # Rerank candidates
         logger.debug(f"Reranking candidates with top_n={top_n}, USE_CROSS_ENCODER={settings.USE_CROSS_ENCODER}")
