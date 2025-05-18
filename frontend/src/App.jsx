@@ -122,7 +122,7 @@ function App() {
       <style>{markdownStyles}</style>
 
       <header>
-        <h1>RAG Embeddings Demo</h1>
+        <h1>RAG Rerank + LLM PoC </h1>
         {isLoading ? (
           <div>Checking API status...</div>
         ) : isError ? (
