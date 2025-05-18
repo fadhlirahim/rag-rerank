@@ -5,6 +5,8 @@
 .env.test.local
 .env.production.local
 
+eval_results/
+
 # Logs
 logs
 *.log
