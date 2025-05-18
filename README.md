@@ -17,6 +17,8 @@ Ideas from https://www.pinecone.io/learn/series/rag/rerankers/#Power-of-Reranker
 - Cross-encoder based reranking of search results with LLM fallback
 - Answer generation from relevant documents
 
+<img width="944" alt="Screenshot 2025-05-18 at 4 08 51 PM" src="https://github.com/user-attachments/assets/381a21b5-c6c8-46df-8446-401d414df6f7" />
+
 ## Quick Setup with uv & mise
 
 ### Prerequisites
