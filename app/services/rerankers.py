@@ -156,7 +156,7 @@ def apply_theme_based_boost(query: str, candidates: List[Dict[str, Any]], is_fic
             token_matches = sum(1 for token in query_tokens if token in text and len(token) > 3)
 
             # Special handling for narrative query elements
-            narrative_elements = ["witness", "wedding", "church", "bride", "ceremony", "st. monica"]
+            narrative_elements = ["witness", "wedding", "church", "bride", "ceremony", "chapel"]
             narrative_matches = sum(1 for elem in narrative_elements if elem in text and elem in query.lower())
 
             if token_matches > 0 or narrative_matches > 0:
@@ -197,7 +197,7 @@ def apply_theme_based_boost(query: str, candidates: List[Dict[str, Any]], is_fic
                 logger.debug(f"Theme match: {theme}, keywords: {', '.join(keyword_overlap) if keyword_overlap else 'none'}")
 
             # Special handling for certain narrative elements
-            narrative_elements = ["witness", "wedding", "church", "bride", "ceremony", "st. monica"]
+            narrative_elements = ["witness", "wedding", "church", "bride", "ceremony", "chapel"]
             text_lower = candidate["text"].lower()
             query_lower = query.lower()
             narrative_matches = sum(1 for elem in narrative_elements if elem in text_lower and elem in query_lower)

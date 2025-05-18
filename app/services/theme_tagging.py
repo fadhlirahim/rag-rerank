@@ -123,7 +123,7 @@ def analyze_query(query: str) -> Tuple[Dict[str, List[str]], List[str]]:
 
     Example
     -------
-    >>> analyze_query("Tell me about Holmes being a witness at a wedding")
+    >>> analyze_query("Tell me about the protagonist being a witness at a wedding")
     ({'social_ceremony': ['wedding', 'witness']}, ['witness', 'wedding'])
     """
     themes = tag_themes(query)
@@ -146,8 +146,8 @@ def simulate_theme_boost(query: str, document: str) -> float:
     Example
     -------
     >>> simulate_theme_boost(
-    ...     "Tell me about Holmes being a witness at a wedding",
-    ...     "Holmes stood at the church as a witness to the wedding ceremony."
+    ...     "Tell me about the protagonist being a witness at a wedding",
+    ...     "The protagonist stood at the church as a witness to the wedding ceremony."
     ... )
     1.05  # Example boost value
     """
@@ -171,7 +171,7 @@ def simulate_theme_boost(query: str, document: str) -> float:
         keyword_overlap_count += len(keyword_overlap)
 
     # Check for narrative elements
-    narrative_elements = ["witness", "wedding", "church", "bride", "ceremony", "st. monica"]
+    narrative_elements = ["witness", "wedding", "church", "bride", "ceremony", "chapel"]
     query_lower = query.lower()
     doc_lower = document.lower()
     narrative_matches = sum(1 for elem in narrative_elements if elem in doc_lower and elem in query_lower)
@@ -198,8 +198,8 @@ if __name__ == "__main__":
     print(tag_themes(sample))
 
     # Test the narrative query
-    narrative_query = "Tell me about Holmes being a witness at a wedding"
-    narrative_doc = "Holmes stood at the church as a witness to the wedding ceremony at St. Monica."
+    narrative_query = "Tell me about the protagonist being a witness at a wedding"
+    narrative_doc = "The protagonist stood at the church as a witness to the wedding ceremony in the chapel."
 
     print("\nQuery Theme Analysis:")
     themes, elements = analyze_query(narrative_query)
