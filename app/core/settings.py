@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     # Retrieval Configuration
     DEFAULT_RETRIEVAL_TOP_K: int = Field(25, env_var="DEFAULT_RETRIEVAL_TOP_K")
     DEFAULT_RERANK_TOP_N: int = Field(5, env_var="DEFAULT_RERANK_TOP_N")
-    CHUNK_SIZE: int = Field(512, env_var="CHUNK_SIZE")
+    CHUNK_SIZE: int = Field(200, env_var="CHUNK_SIZE")
+    MMR_LAMBDA: float = Field(0.5, env_var="MMR_LAMBDA")
 
     # Service Configuration
     DEBUG: bool = Field(False, env_var="DEBUG")

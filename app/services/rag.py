@@ -1,4 +1,5 @@
 from typing import Any
+import numpy as np
 
 from app.core import DocumentIngestionError, QueryError, get_logger, settings
 from app.services.embedding import (
@@ -13,6 +14,105 @@ from app.services.text_processing import load_document
 
 # Setup logger
 logger = get_logger(__name__)
+
+
+def apply_mmr(query_embedding: list[float], candidates: list[dict[str, Any]],
+              lambda_param: float = settings.MMR_LAMBDA, top_k: int = None) -> list[dict[str, Any]]:
+    """
+    Apply Maximal Marginal Relevance to diversify results while maintaining relevance.
+
+    Args:
+        query_embedding: The query embedding vector
+        candidates: List of candidate documents with their embeddings
+        lambda_param: Balance between relevance and diversity (0-1)
+        top_k: Number of results to return
+
+    Returns:
+        List of selected candidates ordered by MMR score
+    """
+    if not candidates:
+        return []
+
+    if top_k is None:
+        top_k = len(candidates)
+
+    if len(candidates) <= top_k:
+        return candidates
+
+    # Extract embeddings from metadata if available, otherwise use the vectors from Pinecone
+    embeddings = []
+    for c in candidates:
+        if "embedding" in c:
+            embeddings.append(np.array(c["embedding"]))
+        elif "vector" in c:
+            embeddings.append(np.array(c["vector"]))
+        elif "metadata" in c and "embedding" in c["metadata"]:
+            embeddings.append(np.array(c["metadata"]["embedding"]))
+        else:
+            # If no embedding is available, we'll need to reconstruct it
+            logger.warning(f"No embedding found for candidate {c['id']}, MMR may be less effective")
+            # Use a placeholder - in a real system you might want to fetch these
+            embeddings.append(np.zeros(len(query_embedding)))
+
+    embeddings = np.array(embeddings)
+    query_embedding = np.array(query_embedding)
+
+    # Normalize for cosine similarity
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    norms[norms == 0] = 1  # Avoid division by zero
+    embeddings = embeddings / norms
+
+    query_norm = np.linalg.norm(query_embedding)
+    if query_norm > 0:
+        query_embedding = query_embedding / query_norm
+
+    # Calculate similarities to query
+    sim_to_query = np.dot(embeddings, query_embedding)
+
+    # Initialize
+    selected_indices = []
+    remaining_indices = list(range(len(candidates)))
+
+    # Select first document with highest similarity to query
+    best_idx = np.argmax(sim_to_query)
+    selected_indices.append(best_idx)
+    remaining_indices.remove(best_idx)
+
+    # Select the rest using MMR
+    for _ in range(min(top_k - 1, len(candidates) - 1)):
+        if not remaining_indices:
+            break
+
+        # Similarity to query for remaining documents (relevance component)
+        query_sim = np.array([sim_to_query[i] for i in remaining_indices])
+
+        # Calculate max similarity to selected documents (diversity component)
+        max_sim_to_selected = np.zeros(len(remaining_indices))
+
+        for i, idx in enumerate(remaining_indices):
+            selected_embeddings = embeddings[selected_indices]
+            curr_embedding = embeddings[idx].reshape(1, -1)
+
+            # Calculate similarity to all selected documents
+            sims = np.dot(curr_embedding, selected_embeddings.T).flatten()
+
+            # Get max similarity
+            if len(sims) > 0:
+                max_sim_to_selected[i] = np.max(sims)
+
+        # Calculate MMR score: relevance - diversity penalty
+        mmr_scores = lambda_param * query_sim - (1 - lambda_param) * max_sim_to_selected
+
+        # Get best scoring document
+        mmr_idx = np.argmax(mmr_scores)
+        next_best_idx = remaining_indices[mmr_idx]
+
+        # Add to selected
+        selected_indices.append(next_best_idx)
+        remaining_indices.remove(next_best_idx)
+
+    # Return documents in order of MMR selection
+    return [candidates[i] for i in selected_indices]
 
 
 async def ingest_document(
@@ -71,14 +171,20 @@ async def query_knowledge(
                 "text": match.metadata["text"],
                 "score": match.score,
                 "metadata": {k: v for k, v in match.metadata.items() if k != "text"},
+                "vector": match.values if hasattr(match, 'values') else None
             }
             for match in matches
         ]
         logger.debug(f"Retrieved {len(candidates)} candidates for reranking")
 
+        # Apply MMR to diversify results before reranking
+        logger.debug("Applying MMR to diversify results")
+        mmr_candidates = apply_mmr(query_embedding, candidates, top_k=min(top_k, len(candidates)))
+        logger.debug(f"Selected {len(mmr_candidates)} diverse candidates with MMR")
+
         # Rerank candidates
         logger.debug(f"Reranking candidates with top_n={top_n}, USE_CROSS_ENCODER={settings.USE_CROSS_ENCODER}")
-        reranked = rerank(query, candidates, top_n)
+        reranked = rerank(query, mmr_candidates, top_n)
 
         # Log reranking results
         mean_score = sum(doc["score"] for doc in reranked) / len(reranked) if reranked else 0

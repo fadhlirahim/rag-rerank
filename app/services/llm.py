@@ -1,5 +1,6 @@
 import json
 from typing import Any
+import os
 
 import openai
 
@@ -65,20 +66,63 @@ def rerank(
 def generate_answer(query: str, documents: list[dict[str, Any]]) -> str:
     """Generate an answer using GPT-4o."""
     try:
-        # Combine document texts
+        # Extract document information for better citations
+        enhanced_docs = []
+        for i, doc in enumerate(documents):
+            doc_num = i + 1
+
+            # Get filename from metadata
+            filename = doc.get("metadata", {}).get("filename", "")
+            if not filename:
+                source_name = "Document " + str(doc_num)
+            else:
+                # Get just the base filename without extension
+                base_name = os.path.basename(filename)
+                source_name = os.path.splitext(base_name)[0].replace("_", " ")
+
+            # Get approximate excerpt location for citation
+            start_pos = doc.get("metadata", {}).get("start_char", 0)
+
+            # Save first few words of the chunk for reference
+            first_words = doc["text"].split()[:5]
+            first_words_text = " ".join(first_words) + "..."
+
+            # Add citation info to the document
+            citation_info = f"[{doc_num}] Source: \"{source_name}\" (ID: {doc['id']})"
+
+            enhanced_docs.append({
+                "num": doc_num,
+                "id": doc["id"],
+                "source": source_name,
+                "start_pos": start_pos,
+                "first_words": first_words_text,
+                "text": doc["text"],
+                "citation": citation_info
+            })
+
+        # Combine document texts with identifiers and citation info
         context = "\n\n".join(
-            f"Document {i + 1}:\n{doc['text']}" for i, doc in enumerate(documents)
+            f"{doc['citation']}\n{doc['text']}"
+            for doc in enhanced_docs
         )
 
         system_content = (
-            "You are a helpful assistant. Use ONLY the context below. "
-            "If the answer isn't in the context, say so."
+            "You are a helpful assistant. Follow these instructions carefully:\n\n"
+            "1. Use ONLY the information in the provided context documents.\n"
+            "2. For each statement in your answer, cite your source using the reference number from the context.\n"
+            "3. Use citations in this format: [1] for information from the first source, [2] for the second, etc.\n"
+            "4. When quoting text directly, add the citation immediately after the quote.\n"
+            "5. If you cannot find evidence for a detail, state 'The provided documents don't contain information about this.'\n"
+            "6. NEVER make up information or citations.\n"
+            "7. Keep citations concise and integrated into your answer.\n"
+            "8. If a piece of information appears in multiple sources, you may cite all relevant sources: [1,2].\n"
+            "9. Strive for accuracy and precision in your citations to maintain credibility."
         )
 
         messages = [
             {"role": "system", "content": system_content},
             {"role": "user", "content": f"Context:\n{context}"},
-            {"role": "user", "content": query},
+            {"role": "user", "content": f"Answer the following query with appropriate citations: {query}"},
         ]
 
         logger.debug(
@@ -90,6 +134,18 @@ def generate_answer(query: str, documents: list[dict[str, Any]]) -> str:
 
         answer = response.choices[0].message.content
         logger.debug(f"Generated answer of length {len(answer)}")
+
+        # Verify citations are included
+        if len(documents) > 0 and not any(f"[{i+1}]" in answer for i in range(min(2, len(documents)))):
+            logger.warning("Answer missing citations - regenerating with stronger instructions")
+            messages[0]["content"] += "\n\nWARNING: Your previous response lacked proper citations. " \
+                                     "You MUST include numbered citations like [1], [2], etc. for EVERY claim you make.\n" \
+                                     "Example: Holmes observed six parallel cuts on Watson's left shoe [1]."
+            response = openai.chat.completions.create(
+                model=settings.ANSWER_MODEL, messages=messages, temperature=0.1
+            )
+            answer = response.choices[0].message.content
+
         return answer
 
     except Exception as e:

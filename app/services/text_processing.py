@@ -8,20 +8,36 @@ logger = get_logger(__name__)
 
 
 def split_text(text: str, metadata: dict[str, Any] = None) -> list[TextChunk]:
-    """Split a document into chunks of text."""
+    """Split a document into chunks of text with overlap."""
     try:
-        # Simple text splitting by character count
+        words = text.split()
+        chunk_size = settings.CHUNK_SIZE  # Now represents word count, not char count
+        overlap = int(chunk_size * 0.4)  # 40% overlap
+
         chunks = []
-        for i in range(0, len(text), settings.CHUNK_SIZE):
-            chunk_text = text[i : i + settings.CHUNK_SIZE]
+        for i in range(0, len(words), chunk_size - overlap):
+            if i + chunk_size > len(words):
+                chunk_words = words[i:]
+            else:
+                chunk_words = words[i:i + chunk_size]
+
+            chunk_text = " ".join(chunk_words)
+
+            # Calculate approximate character positions for reference
+            start_char = sum(len(word) + 1 for word in words[:i]) if i > 0 else 0
+            end_char = start_char + len(chunk_text)
+
             chunk_metadata = {
                 **(metadata or {}),
-                "start_char": i,
-                "end_char": min(i + settings.CHUNK_SIZE, len(text)),
+                "start_char": start_char,
+                "end_char": end_char,
+                "start_word": i,
+                "end_word": i + len(chunk_words),
             }
+
             chunks.append(TextChunk(text=chunk_text, metadata=chunk_metadata))
 
-        logger.debug(f"Split text into {len(chunks)} chunks")
+        logger.debug(f"Split text into {len(chunks)} overlapping chunks")
         return chunks
     except Exception as e:
         logger.error(f"Failed to split text: {str(e)}")
@@ -40,7 +56,7 @@ def load_document(
             **(metadata or {}),
         }
         chunks = split_text(content, doc_metadata)
-        logger.info(f"Loaded document into {len(chunks)} chunks")
+        logger.info(f"Loaded document into {len(chunks)} chunks with overlap")
         return chunks
     except Exception as e:
         logger.error(f"Failed to load document: {str(e)}")
