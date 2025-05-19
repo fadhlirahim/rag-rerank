@@ -92,7 +92,7 @@ source .venv/bin/activate
 After running the setup script and activating the environment, you can start the application with:
 
 ```bash
-mise run dev
+mise run dev-all
 ```
 
 ### Manual Setup
