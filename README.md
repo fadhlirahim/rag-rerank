@@ -16,7 +16,38 @@ Ideas from https://www.pinecone.io/learn/series/rag/rerankers/#Power-of-Reranker
 - Semantic search using OpenAI embeddings
 - Cross-encoder based reranking of search results with LLM fallback
 - Answer generation from relevant documents
-  
+
+## Diagram overview
+
+```
+ ┌───────────────┐   ingest     ┌──────────────┐
+ │  Markdown /   │─────────────►│ Chunker +    │
+ │  Text Files   │              │ Embeddings   │
+ └───────────────┘              └─────┬────────┘
+                                      │ upsert
+                                ┌─────▼───────┐
+                                │ Pinecone DB │
+                                └─────▲───────┘
+                                      │ ANN search (top-K)
+USER QUERY ─────embed────────────────►│
+                                      ▼
+                               Candidates (K)
+                                      │ rerank
+                           ┌──────────▼─────────┐
+                           │ Cross-encoder /    │
+                           │ LLM judge scores   │
+                           └──────────▲─────────┘
+                                      │ top-N
+                                      ▼
+                               High-grade context
+                                      │
+                               ┌──────▼───────┐
+                               │ GPT-4o (LLM) │
+                               └──────▲───────┘
+                                      │ answer + citations
+                                   Final Answer
+```
+
 <img width="900" alt="Screenshot 2025-05-18 at 4 29 33 PM" src="https://github.com/user-attachments/assets/432b244d-ab8a-42c7-95f9-e1c53909d12d" />
 <img width="900" alt="Screenshot 2025-05-18 at 4 27 41 PM" src="https://github.com/user-attachments/assets/c390fdc6-8b3e-43b3-8935-2f9bff8f0de8" />
 
