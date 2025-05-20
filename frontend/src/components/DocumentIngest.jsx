@@ -134,6 +134,7 @@ function DocumentIngest() {
             accept=".md"
             style={{ display: 'none' }}
             onChange={handleFileUpload}
+            data-testid="file-upload-input"
           />
           <button
             type="button"
