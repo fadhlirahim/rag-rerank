@@ -5,14 +5,14 @@ Goal: Get a bare-bones, two-stage RAG that uses:
 * Rerank GPT-4-o via a cheap JSON-scoring prompt (no OpenAI cross-encoder exists, deal with it).
 * Answer GPT-4-o with the reranked top-n chunks in the system prompt.
 
-Tech stack: Python 3.11, FastAPI, and Pinecone.
+Tech stack: Python 3.11, FastAPI, and LanceDB.
 
 0. Infrastructure (one-time)
 
 | What                         | Why                                           | Non-BS Tips                                                              |
 |------------------------------|-----------------------------------------------|---------------------------------------------------------------------------|
 | Create an OpenAI org & keys | You can’t run without them.                  | Separate keys per env; throttle at the gateway.                         |
-| Spin up Pinecone (Starter)  | Fast vector look-ups; free until you hit real scale. | Use the “starter” pod; 1K dim limit means set dimensions=1024 on the embedding call. |
+| Set up LanceDB               | Fast vector look-ups; embedded database, runs locally. | Consider embedding dimensions (e.g., 1024 for `text-embedding-3-large`) for cost and performance. |
 | GPU?                         | Only needed if you ditch GPT reranking later. | Leave it for v2.                                                         |
 
 
@@ -24,9 +24,9 @@ chunks = split_text(docs, 512)         # stay <3-4 KB per chunk
 embs = openai.embeddings.create(
     model="text-embedding-3-large",
     input=[c.text for c in chunks],
-    dimensions=1024                    # shrinks cost & Pinecone dims
+    dimensions=1024                    # shrinks cost & helps performance
 )
-pinecone.upsert(zip(chunk_ids, embs, meta))
+lancedb_table.add(data_formatted_for_lancedb) # Example: data = [{"id": id, "vector": emb, **meta_item}...]
 ```
 
 Reality check: embedding is the slow part—~0.3s per 1K tokens. Parallel-batch or it drags.
@@ -40,7 +40,7 @@ def retrieve(query: str, k: int = 25):
         input=query,
         dimensions=1024
     )["data"][0]["embedding"]
-    matches = pinecone.query(vector=q_emb, top_k=k, include_metadata=True)
+    matches = lancedb_table.search(q_emb).limit(k).to_list() # Example
     return matches
 ```
 
@@ -101,7 +101,7 @@ def answer(query, docs):
 * /ingest POST raw docs
 * /ask GET query → runs retrieve → rerank → answer
 
-Keep it stateless; store doc metadata & embeddings, not the raw text, in Pinecone.
+Keep it stateless; store doc metadata & embeddings in LanceDB.
 
 6. Test Matrix
 
@@ -110,7 +110,7 @@ Keep it stateless; store doc metadata & embeddings, not the raw text, in Pinecon
 | Query that is in corpus | Perfect answer | Checks recall path.                      |
 | Near-duplicate phrasing | Same answer   | Embeddings quality.                      |
 | Query outside corpus    | “I don’t know.” | Hallucination guard.                     |
-| 50 concurrent queries   | <1 s p95      | Measures GPT concurrency + Pinecone.     |
+| 50 concurrent queries   | <1 s p95      | Measures GPT concurrency + LanceDB.     |
 
 
 7. Hard Truths & Next Steps
