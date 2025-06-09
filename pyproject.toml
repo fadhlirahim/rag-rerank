@@ -16,6 +16,7 @@ dependencies = [
     "httpx>=0.25.0,<0.26.0",
     "gunicorn>=21.2.0,<22.0.0",
     "sentence-transformers>=2.5.1",
+    "lancedb==0.23.0",
 ]
 
 [dependency-groups]

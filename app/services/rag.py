@@ -165,17 +165,18 @@ async def query_knowledge(
         matches = query_embeddings(query_embedding, top_k)
 
         # Convert matches to candidate format for reranking
+        # matches from query_embeddings are now dicts, and 'score' is distance (lower is better)
         candidates = [
             {
-                "id": match.id,
-                "text": match.metadata["text"],
-                "score": match.score,
-                "metadata": {k: v for k, v in match.metadata.items() if k != "text"},
-                "vector": match.values if hasattr(match, 'values') else None
+                "id": match["id"],
+                "text": match["metadata"]["text"], # Ensure 'text' is in match["metadata"]
+                "score": match["score"], # This is LanceDB distance
+                "metadata": {k: v for k, v in match["metadata"].items() if k != "text"},
+                "vector": match["values"] if "values" in match else None # Ensure 'values' (vector) is present
             }
             for match in matches
         ]
-        logger.debug(f"Retrieved {len(candidates)} candidates for reranking")
+        logger.debug(f"Retrieved {len(candidates)} candidates for reranking. Scores are distances (lower is better).")
 
         # Check if we should skip MMR for fiction content
         is_fiction = any(
@@ -218,7 +219,9 @@ async def query_knowledge(
 
         # Log reranking results
         mean_score = sum(doc["score"] for doc in reranked) / len(reranked) if reranked else 0
-        logger.debug(f"Reranking complete, mean relevance score: {mean_score:.2f}")
+        # Note: The nature of this score depends on what the reranker returns.
+        # If it passes through LanceDB distances, lower is "better".
+        logger.debug(f"Reranking complete, mean score from reranker: {mean_score:.2f}")
 
         # Generate answer
         logger.debug("Generating answer")
