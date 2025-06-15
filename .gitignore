@@ -59,5 +59,4 @@ wheels/
 .installed.cfg
 *.egg
 
-
-
+.lancedb

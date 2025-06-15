@@ -32,9 +32,9 @@ class Settings(BaseSettings):
     NARRATIVE_ELEMENT_BOOST: float = Field(0.5, env_var="NARRATIVE_ELEMENT_BOOST")
     ENABLE_THEME_DETECTION: bool = Field(True, env_var="ENABLE_THEME_DETECTION")
 
-    # Pinecone Configuration
-    PINECONE_API_KEY: str = Field(..., env_var="PINECONE_API_KEY")
-    PINECONE_INDEX_NAME: str = Field(..., env_var="PINECONE_INDEX_NAME")
+    # LanceDB Configuration
+    LANCEDB_TABLE_NAME: str = Field("my_table", env_var="LANCEDB_TABLE_NAME")
+    LANCEDB_DATABASE_PATH: str = Field("./.lancedb", env_var="LANCEDB_DATABASE_PATH")
 
     # Retrieval Configuration
     DEFAULT_RETRIEVAL_TOP_K: int = Field(50, env_var="DEFAULT_RETRIEVAL_TOP_K")
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     # Service Configuration
     DEBUG: bool = Field(False, env_var="DEBUG")
 
-    model_config = {"env_file": ".env", "case_sensitive": True}
+    model_config = {"env_file": ".env", "case_sensitive": True, "extra": "ignore"}
 
 
 settings = Settings()
