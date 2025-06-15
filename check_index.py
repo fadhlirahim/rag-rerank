@@ -30,7 +30,7 @@ print(f"Attempting to connect to LanceDB at path: {LANCEDB_DATABASE_PATH}")
 
 try:
     db = lancedb.connect(LANCEDB_DATABASE_PATH)
-    print(f"Successfully connected to database director at: {LANCEDB_DATABASE_PATH}")
+    print(f"Successfully connected to database directory at: {LANCEDB_DATABASE_PATH}")
 
     print(f"Attempting to open table: {LANCEDB_TABLE_NAME}...")
     table = db.open_table(LANCEDB_TABLE_NAME)
