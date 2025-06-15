@@ -18,27 +18,35 @@ try:
     db = lancedb.connect(settings.LANCEDB_DATABASE_PATH)
 
     # Define the schema for the LanceDB table
-    # Based on rag.py, 'text' is a crucial metadata field.
-    # Other metadata will be stored and retrieved.
-    # The vector dimension must match settings.EMBEDDING_DIMENSIONS.
+    # Include all common metadata fields used by the application
     schema = pa.schema([
         pa.field("id", pa.string()),
         pa.field("vector", pa.list_(pa.float32(), list_size=settings.EMBEDDING_DIMENSIONS)),
         pa.field("text", pa.string()),
-        # Add other anticipated common metadata fields if known,
-        # otherwise, they will be part of the dynamic dictionary.
-        # For now, we rely on 'text' and other fields will be passed through
-        # in the data dictionaries to table.add()
+        # Common metadata fields from document processing
+        pa.field("filename", pa.string()),
+        pa.field("source", pa.string()),
+        pa.field("is_fiction", pa.bool_()),
+        pa.field("fiction_source", pa.string(), nullable=True),
+        pa.field("start_char", pa.int64()),
+        pa.field("end_char", pa.int64()),
+        pa.field("category", pa.string()),
+        pa.field("genre", pa.string()),
     ])
 
     try:
         logger.info(f"Attempting to open LanceDB table: {settings.LANCEDB_TABLE_NAME}")
         table = db.open_table(settings.LANCEDB_TABLE_NAME)
         logger.info(f"Successfully opened table: {settings.LANCEDB_TABLE_NAME}")
-    except FileNotFoundError:
-        logger.info(f"Table {settings.LANCEDB_TABLE_NAME} not found. Creating new table.")
-        table = db.create_table(settings.LANCEDB_TABLE_NAME, schema=schema)
-        logger.info(f"Successfully created table: {settings.LANCEDB_TABLE_NAME} with schema: {schema}")
+    except Exception as table_error:
+        # Handle both FileNotFoundError and other table-not-found errors
+        if "not found" in str(table_error).lower() or isinstance(table_error, FileNotFoundError):
+            logger.info(f"Table {settings.LANCEDB_TABLE_NAME} not found. Creating new table.")
+            table = db.create_table(settings.LANCEDB_TABLE_NAME, schema=schema)
+            logger.info(f"Successfully created table: {settings.LANCEDB_TABLE_NAME} with schema: {schema}")
+        else:
+            # Re-raise if it's a different error
+            raise table_error
 
 except Exception as e:
     logger.error(f"Failed to initialize LanceDB or table: {str(e)}")
@@ -146,14 +154,20 @@ def upsert_embeddings(
                 else:
                     embedding.extend([0.0] * (settings.EMBEDDING_DIMENSIONS - len(embedding)))
 
-            # Ensure 'text' is present as per schema, other metadata fields are passed as is.
-            # LanceDB handles dynamic fields in dictionaries if not strictly typed in schema,
-            # or they can be added to schema if they are fixed.
-            # Our schema defines 'text', so it must be present.
-            item = {"id": chunk_id, "vector": embedding, **meta_item}
-            if "text" not in item:
-                logger.warning(f"Chunk {chunk_id} metadata missing 'text' field. Adding empty string.")
-                item["text"] = "" # Ensure text field exists as per schema
+            # Ensure all schema fields are present with proper defaults
+            item = {
+                "id": chunk_id,
+                "vector": embedding,
+                "text": meta_item.get("text", ""),
+                "filename": meta_item.get("filename", ""),
+                "source": meta_item.get("source", "unknown"),
+                "is_fiction": meta_item.get("is_fiction", False),
+                "fiction_source": meta_item.get("fiction_source", None),
+                "start_char": meta_item.get("start_char", 0),
+                "end_char": meta_item.get("end_char", 0),
+                "category": meta_item.get("category", "general"),
+                "genre": meta_item.get("genre", "non-fiction"),
+            }
             data_to_add.append(item)
 
         if not data_to_add:

@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     # Service Configuration
     DEBUG: bool = Field(False, env_var="DEBUG")
 
-    model_config = {"env_file": ".env", "case_sensitive": True}
+    model_config = {"env_file": ".env", "case_sensitive": True, "extra": "ignore"}
 
 
 settings = Settings()
